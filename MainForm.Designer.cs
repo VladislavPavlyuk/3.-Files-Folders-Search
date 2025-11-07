@@ -56,14 +56,13 @@ namespace FileSearchApp
             // 
             // comboBoxDisk
             // 
-            this.comboBoxDisk.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
+            this.comboBoxDisk.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left)));
             this.comboBoxDisk.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.comboBoxDisk.Font = new System.Drawing.Font("Microsoft Sans Serif", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
             this.comboBoxDisk.FormattingEnabled = true;
             this.comboBoxDisk.Location = new System.Drawing.Point(12, 75);
             this.comboBoxDisk.Name = "comboBoxDisk";
-            this.comboBoxDisk.Size = new System.Drawing.Size(600, 23);
+            this.comboBoxDisk.Size = new System.Drawing.Size(400, 23);
             this.comboBoxDisk.TabIndex = 1;
             // 
             // textBoxContent
@@ -113,19 +112,6 @@ namespace FileSearchApp
             this.buttonPause.UseVisualStyleBackColor = true;
             this.buttonPause.Click += new System.EventHandler(this.buttonPause_Click);
             // 
-            // checkBoxSearchInSubdirectories
-            // 
-            this.checkBoxSearchInSubdirectories.AutoSize = true;
-            this.checkBoxSearchInSubdirectories.Checked = true;
-            this.checkBoxSearchInSubdirectories.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.checkBoxSearchInSubdirectories.Font = new System.Drawing.Font("Microsoft Sans Serif", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
-            this.checkBoxSearchInSubdirectories.Location = new System.Drawing.Point(12, 102);
-            this.checkBoxSearchInSubdirectories.Name = "checkBoxSearchInSubdirectories";
-            this.checkBoxSearchInSubdirectories.Size = new System.Drawing.Size(158, 19);
-            this.checkBoxSearchInSubdirectories.TabIndex = 11;
-            this.checkBoxSearchInSubdirectories.Text = "Search in subdirectories";
-            this.checkBoxSearchInSubdirectories.UseVisualStyleBackColor = true;
-            // 
             // listViewResults
             // 
             this.listViewResults.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
@@ -139,19 +125,6 @@ namespace FileSearchApp
             this.listViewResults.Name = "listViewResults";
             this.listViewResults.Size = new System.Drawing.Size(776, 288);
             this.listViewResults.TabIndex = 3;
-            // 
-            // checkBoxSearchInSubdirectories
-            // 
-            this.checkBoxSearchInSubdirectories.AutoSize = true;
-            this.checkBoxSearchInSubdirectories.Checked = true;
-            this.checkBoxSearchInSubdirectories.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.checkBoxSearchInSubdirectories.Font = new System.Drawing.Font("Microsoft Sans Serif", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
-            this.checkBoxSearchInSubdirectories.Location = new System.Drawing.Point(180, 102);
-            this.checkBoxSearchInSubdirectories.Name = "checkBoxSearchInSubdirectories";
-            this.checkBoxSearchInSubdirectories.Size = new System.Drawing.Size(158, 19);
-            this.checkBoxSearchInSubdirectories.TabIndex = 11;
-            this.checkBoxSearchInSubdirectories.Text = "Search in subdirectories";
-            this.checkBoxSearchInSubdirectories.UseVisualStyleBackColor = true;
             this.listViewResults.UseCompatibleStateImageBehavior = false;
             // 
             // buttonSearch
@@ -165,6 +138,20 @@ namespace FileSearchApp
             this.buttonSearch.Text = "Search";
             this.buttonSearch.UseVisualStyleBackColor = true;
             this.buttonSearch.Click += new System.EventHandler(this.buttonSearch_Click);
+            // 
+            // checkBoxSearchInSubdirectories
+            // 
+            this.checkBoxSearchInSubdirectories.Anchor = ((System.Windows.Forms.AnchorStyles)(System.Windows.Forms.AnchorStyles.Top));
+            this.checkBoxSearchInSubdirectories.AutoSize = true;
+            this.checkBoxSearchInSubdirectories.Checked = true;
+            this.checkBoxSearchInSubdirectories.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.checkBoxSearchInSubdirectories.Font = new System.Drawing.Font("Microsoft Sans Serif", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
+            this.checkBoxSearchInSubdirectories.Location = new System.Drawing.Point(450, 78);
+            this.checkBoxSearchInSubdirectories.Name = "checkBoxSearchInSubdirectories";
+            this.checkBoxSearchInSubdirectories.Size = new System.Drawing.Size(158, 19);
+            this.checkBoxSearchInSubdirectories.TabIndex = 11;
+            this.checkBoxSearchInSubdirectories.Text = "Search in subdirectories";
+            this.checkBoxSearchInSubdirectories.UseVisualStyleBackColor = true;
             // 
             // labelMask
             // 

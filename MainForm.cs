@@ -23,11 +23,13 @@ namespace FileSearchApp
             InitializeListView();
             this.Resize += MainForm_Resize;
             AdjustContentTextBoxSize();
+            AdjustSubdirectoriesCheckBoxPosition();
         }
 
         private void MainForm_Resize(object sender, EventArgs e)
         {
             AdjustContentTextBoxSize();
+            AdjustSubdirectoriesCheckBoxPosition();
         }
 
         private void AdjustContentTextBoxSize()
@@ -41,6 +43,37 @@ namespace FileSearchApp
                 if (availableWidth > 100) // Minimum width
                 {
                     textBoxContent.Width = availableWidth;
+                }
+            }
+        }
+
+        private void AdjustSubdirectoriesCheckBoxPosition()
+        {
+            if (checkBoxSearchInSubdirectories != null && comboBoxDisk != null && buttonSearch != null)
+            {
+                int spacing = 8; // Space between elements
+                int checkboxWidth = checkBoxSearchInSubdirectories.Width;
+                int buttonLeft = buttonSearch.Left;
+                
+                // Position checkbox to the left of buttonSearch with spacing
+                int checkboxLeft = buttonLeft - spacing - checkboxWidth;
+                
+                // Ensure checkbox doesn't overlap with buttonSearch
+                if (checkboxLeft + checkboxWidth > buttonLeft - spacing)
+                {
+                    checkboxLeft = buttonLeft - spacing - checkboxWidth;
+                }
+                
+                checkBoxSearchInSubdirectories.Left = checkboxLeft;
+                
+                // Position checkbox at the same vertical position as comboBoxDisk
+                checkBoxSearchInSubdirectories.Top = comboBoxDisk.Top;
+                
+                // Adjust comboBoxDisk width to not overlap with checkbox
+                int maxComboBoxWidth = checkboxLeft - spacing - comboBoxDisk.Left;
+                if (maxComboBoxWidth > 100) // Minimum width
+                {
+                    comboBoxDisk.Width = maxComboBoxWidth;
                 }
             }
         }
