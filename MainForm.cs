@@ -1,5 +1,7 @@
 using System;
+using System.Collections;
 using System.IO;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
@@ -10,7 +12,9 @@ namespace FileSearchApp
     public partial class MainForm : Form
     {
         private CancellationTokenSource? _cancellationTokenSource;
+        private ManualResetEventSlim? _pauseEvent;
         private bool _isSearching = false;
+        private bool _isPaused = false;
 
         public MainForm()
         {
@@ -26,7 +30,7 @@ namespace FileSearchApp
             {
                 if (drive.IsReady)
                 {
-                    string label = string.IsNullOrEmpty(drive.VolumeLabel) ? "Локальный диск" : drive.VolumeLabel;
+                    string label = string.IsNullOrEmpty(drive.VolumeLabel) ? "Local Disk" : drive.VolumeLabel;
                     string displayText = $"{drive.Name.TrimEnd('\\')} ({label})";
                     comboBoxDisk.Items.Add(displayText);
                 }
@@ -41,10 +45,80 @@ namespace FileSearchApp
         {
             listViewResults.View = View.Details;
             listViewResults.FullRowSelect = true;
-            listViewResults.Columns.Add("Имя", 300);
-            listViewResults.Columns.Add("Путь", 500);
-            listViewResults.Columns.Add("Тип", 100);
-            listViewResults.Columns.Add("Размер", 100);
+            listViewResults.GridLines = true;
+            listViewResults.MultiSelect = false;
+            listViewResults.Columns.Add("Name", 300);
+            listViewResults.Columns.Add("Path", 500);
+            listViewResults.Columns.Add("Type", 100);
+            listViewResults.Columns.Add("Size", 100);
+            listViewResults.ColumnClick += ListViewResults_ColumnClick;
+            listViewResults.DoubleClick += ListViewResults_DoubleClick;
+            
+            // Enable sorting
+            listViewResults.Sorting = SortOrder.Ascending;
+        }
+
+        private void ListViewResults_ColumnClick(object sender, ColumnClickEventArgs e)
+        {
+            ListView listView = (ListView)sender;
+            
+            // Determine if clicked column is already the column that is being sorted.
+            if (e.Column == listView.Tag as int?)
+            {
+                // Reverse the current sort direction for this column.
+                if (listView.Sorting == SortOrder.Ascending)
+                {
+                    listView.Sorting = SortOrder.Descending;
+                }
+                else
+                {
+                    listView.Sorting = SortOrder.Ascending;
+                }
+            }
+            else
+            {
+                // Set the column number that is to be sorted; default to ascending.
+                listView.Tag = e.Column;
+                listView.Sorting = SortOrder.Ascending;
+            }
+            
+            // Create a comparer.
+            listView.ListViewItemSorter = new ListViewItemComparer(e.Column, listView.Sorting);
+        }
+
+        private void ListViewResults_DoubleClick(object sender, EventArgs e)
+        {
+            if (listViewResults.SelectedItems.Count > 0)
+            {
+                string path = listViewResults.SelectedItems[0].Tag?.ToString() ?? "";
+                if (!string.IsNullOrEmpty(path))
+                {
+                    try
+                    {
+                        if (File.Exists(path))
+                        {
+                            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                            {
+                                FileName = path,
+                                UseShellExecute = true
+                            });
+                        }
+                        else if (Directory.Exists(path))
+                        {
+                            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                            {
+                                FileName = "explorer.exe",
+                                Arguments = path,
+                                UseShellExecute = true
+                            });
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show($"Cannot open: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    }
+                }
+            }
         }
 
         private void buttonSearch_Click(object sender, EventArgs e)
@@ -58,20 +132,20 @@ namespace FileSearchApp
             string mask = textBoxMask.Text.Trim();
             if (string.IsNullOrEmpty(mask))
             {
-                MessageBox.Show("Введите маску для поиска", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show("Enter search mask", "Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
             if (comboBoxDisk.SelectedItem == null)
             {
-                MessageBox.Show("Выберите диск для поиска", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show("Select a disk for search", "Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
             string rootPath = "";
             string selectedText = comboBoxDisk.SelectedItem?.ToString() ?? "";
             
-            // Извлекаем путь диска из текста (формат: "C: (System)" -> "C:\")
+            // Extract disk path from text (format: "C: (System)" -> "C:\")
             int colonIndex = selectedText.IndexOf(':');
             if (colonIndex >= 0)
             {
@@ -79,12 +153,12 @@ namespace FileSearchApp
             }
             else
             {
-                // Пытаемся найти путь через DriveInfo
+                // Try to find path through DriveInfo
                 foreach (DriveInfo drive in DriveInfo.GetDrives())
                 {
                     if (drive.IsReady)
                     {
-                        string label = string.IsNullOrEmpty(drive.VolumeLabel) ? "Локальный диск" : drive.VolumeLabel;
+                        string label = string.IsNullOrEmpty(drive.VolumeLabel) ? "Local Disk" : drive.VolumeLabel;
                         string displayText = $"{drive.Name.TrimEnd('\\')} ({label})";
                         if (displayText == selectedText)
                         {
@@ -97,38 +171,72 @@ namespace FileSearchApp
 
             if (string.IsNullOrEmpty(rootPath) || !Directory.Exists(rootPath))
             {
-                MessageBox.Show("Неверный путь к диску", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show("Invalid disk path", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
 
-            StartSearch(rootPath, mask);
+            string searchText = checkBoxSearchInContent.Checked ? textBoxContent.Text.Trim() : "";
+            bool searchInSubdirectories = checkBoxSearchInSubdirectories.Checked;
+            StartSearch(rootPath, mask, searchText, searchInSubdirectories);
         }
 
-        private void StartSearch(string rootPath, string mask)
+        private void StartSearch(string rootPath, string mask, string searchText, bool searchInSubdirectories)
         {
             _isSearching = true;
-            buttonSearch.Text = "Остановить";
+            _isPaused = false;
+            buttonSearch.Text = "Stop";
+            buttonPause.Text = "Pause";
+            buttonPause.Enabled = true;
             listViewResults.Items.Clear();
-            labelStatus.Text = "Поиск...";
+            labelStatus.Text = "Searching...";
             progressBar.Visible = true;
             progressBar.Style = ProgressBarStyle.Marquee;
 
             _cancellationTokenSource = new CancellationTokenSource();
+            _pauseEvent = new ManualResetEventSlim(true); // Initially not paused
             var token = _cancellationTokenSource.Token;
 
-            Task.Run(() => PerformSearch(rootPath, mask, token), token);
+            Task.Run(() => PerformSearch(rootPath, mask, searchText, searchInSubdirectories, token), token);
         }
 
         private void CancelSearch()
         {
             _cancellationTokenSource?.Cancel();
-            buttonSearch.Text = "Поиск";
-            labelStatus.Text = "Поиск отменен";
+            _pauseEvent?.Dispose();
+            _pauseEvent = null;
+            buttonSearch.Text = "Search";
+            buttonPause.Text = "Pause";
+            buttonPause.Enabled = false;
+            labelStatus.Text = "Search cancelled";
             progressBar.Visible = false;
             _isSearching = false;
+            _isPaused = false;
         }
 
-        private void PerformSearch(string rootPath, string mask, CancellationToken cancellationToken)
+        private void buttonPause_Click(object sender, EventArgs e)
+        {
+            if (!_isSearching)
+                return;
+
+            if (_isPaused)
+            {
+                // Resume
+                _isPaused = false;
+                _pauseEvent?.Set();
+                buttonPause.Text = "Pause";
+                labelStatus.Text = "Searching...";
+            }
+            else
+            {
+                // Pause
+                _isPaused = true;
+                _pauseEvent?.Reset();
+                buttonPause.Text = "Resume";
+                labelStatus.Text = "Paused";
+            }
+        }
+
+        private void PerformSearch(string rootPath, string mask, string searchText, bool searchInSubdirectories, CancellationToken cancellationToken)
         {
             try
             {
@@ -136,11 +244,12 @@ namespace FileSearchApp
                 {
                     UpdateUI(() =>
                     {
-                        MessageBox.Show($"Директория не существует: {rootPath}", "Ошибка", 
+                        MessageBox.Show($"Directory does not exist: {rootPath}", "Error", 
                             MessageBoxButtons.OK, MessageBoxIcon.Error);
-                        labelStatus.Text = "Ошибка";
+                        labelStatus.Text = "Error";
                         progressBar.Visible = false;
-                        buttonSearch.Text = "Поиск";
+                        buttonSearch.Text = "Search";
+                        buttonPause.Enabled = false;
                         _isSearching = false;
                     });
                     return;
@@ -150,22 +259,24 @@ namespace FileSearchApp
                 var regex = new Regex(pattern, RegexOptions.IgnoreCase);
 
                 int foundCount = 0;
-                SearchDirectory(rootPath, regex, ref foundCount, cancellationToken);
+                bool searchInContent = !string.IsNullOrEmpty(searchText);
+                SearchDirectory(rootPath, regex, searchText, searchInContent, searchInSubdirectories, ref foundCount, cancellationToken);
 
                 if (!cancellationToken.IsCancellationRequested)
                 {
                     UpdateUI(() =>
                     {
-                        labelStatus.Text = $"Найдено: {foundCount}";
+                        labelStatus.Text = $"Found: {foundCount}";
                         progressBar.Visible = false;
-                        buttonSearch.Text = "Поиск";
+                        buttonSearch.Text = "Search";
+                        buttonPause.Enabled = false;
                         _isSearching = false;
                     });
                 }
             }
             catch (OperationCanceledException)
             {
-                // Поиск отменен - ничего не делаем
+                // Search cancelled - do nothing
             }
             catch (Exception ex)
             {
@@ -173,11 +284,12 @@ namespace FileSearchApp
                 {
                     UpdateUI(() =>
                     {
-                        MessageBox.Show($"Ошибка при поиске: {ex.Message}\n\n{ex.StackTrace}", "Ошибка", 
+                        MessageBox.Show($"Search error: {ex.Message}\n\n{ex.StackTrace}", "Error", 
                             MessageBoxButtons.OK, MessageBoxIcon.Error);
-                        labelStatus.Text = "Ошибка";
+                        labelStatus.Text = "Error";
                         progressBar.Visible = false;
-                        buttonSearch.Text = "Поиск";
+                        buttonSearch.Text = "Search";
+                        buttonPause.Enabled = false;
                         _isSearching = false;
                     });
                 }
@@ -194,7 +306,7 @@ namespace FileSearchApp
                 }
                 catch (ObjectDisposedException)
                 {
-                    // Форма закрыта, игнорируем
+                    // Form closed, ignore
                 }
             }
             else if (!this.IsDisposed)
@@ -203,14 +315,21 @@ namespace FileSearchApp
             }
         }
 
-        private void SearchDirectory(string directory, Regex pattern, ref int foundCount, CancellationToken cancellationToken)
+        private void WaitIfPaused()
+        {
+            _pauseEvent?.Wait();
+        }
+
+        private void SearchDirectory(string directory, Regex pattern, string searchText, bool searchInContent, bool searchInSubdirectories, ref int foundCount, CancellationToken cancellationToken)
         {
             if (cancellationToken.IsCancellationRequested)
                 return;
 
+            WaitIfPaused();
+
             try
             {
-                // Поиск файлов
+                // Search files
                 string[] files;
                 try
                 {
@@ -230,22 +349,36 @@ namespace FileSearchApp
                     if (cancellationToken.IsCancellationRequested)
                         return;
 
+                    WaitIfPaused();
+
                     try
                     {
                         string fileName = Path.GetFileName(file);
                         if (!string.IsNullOrEmpty(fileName) && pattern.IsMatch(fileName))
                         {
-                            foundCount++;
-                            AddResultToListView(file, true);
+                            // If content search is enabled, check file content
+                            if (searchInContent)
+                            {
+                                if (FileContainsText(file, searchText, cancellationToken))
+                                {
+                                    foundCount++;
+                                    AddResultToListView(file, true);
+                                }
+                            }
+                            else
+                            {
+                                foundCount++;
+                                AddResultToListView(file, true);
+                            }
                         }
                     }
                     catch
                     {
-                        // Пропускаем проблемные файлы
+                        // Skip problematic files
                     }
                 }
 
-                // Поиск папок
+                // Search folders
                 string[] directories;
                 try
                 {
@@ -265,6 +398,8 @@ namespace FileSearchApp
                     if (cancellationToken.IsCancellationRequested)
                         return;
 
+                    WaitIfPaused();
+
                     try
                     {
                         string dirName = Path.GetFileName(dir);
@@ -274,34 +409,37 @@ namespace FileSearchApp
                             AddResultToListView(dir, false);
                         }
 
-                        // Рекурсивный поиск в подпапках
-                        SearchDirectory(dir, pattern, ref foundCount, cancellationToken);
+                        // Recursive search in subdirectories
+                        if (searchInSubdirectories)
+                        {
+                            SearchDirectory(dir, pattern, searchText, searchInContent, searchInSubdirectories, ref foundCount, cancellationToken);
+                        }
                     }
                     catch (UnauthorizedAccessException)
                     {
-                        // Пропускаем папки без доступа
+                        // Skip folders without access
                     }
                     catch (DirectoryNotFoundException)
                     {
-                        // Пропускаем несуществующие папки
+                        // Skip non-existent folders
                     }
                     catch
                     {
-                        // Пропускаем другие ошибки
+                        // Skip other errors
                     }
                 }
             }
             catch (UnauthorizedAccessException)
             {
-                // Пропускаем папки без доступа
+                // Skip folders without access
             }
             catch (DirectoryNotFoundException)
             {
-                // Пропускаем несуществующие папки
+                // Skip non-existent folders
             }
             catch
             {
-                // Пропускаем другие ошибки
+                // Skip other errors
             }
         }
 
@@ -319,7 +457,7 @@ namespace FileSearchApp
                         name = path;
 
                     string directory = Path.GetDirectoryName(path) ?? "";
-                    string type = isFile ? "Файл" : "Папка";
+                    string type = isFile ? "File" : "Folder";
                     string size = "";
 
                     if (isFile)
@@ -352,7 +490,7 @@ namespace FileSearchApp
                 }
                 catch
                 {
-                    // Игнорируем ошибки при добавлении в список
+                    // Ignore errors when adding to list
                 }
             });
         }
@@ -372,11 +510,115 @@ namespace FileSearchApp
 
         private string ConvertMaskToRegex(string mask)
         {
-            // Экранируем специальные символы regex, кроме * и ?
+            // Escape regex special characters except * and ?
             string escaped = Regex.Escape(mask);
-            // Заменяем экранированные \* и \? на regex паттерны
+            // Replace escaped \* and \? with regex patterns
             escaped = escaped.Replace(@"\*", ".*").Replace(@"\?", ".");
             return "^" + escaped + "$";
+        }
+
+        private bool FileContainsText(string filePath, string searchText, CancellationToken cancellationToken)
+        {
+            if (cancellationToken.IsCancellationRequested)
+                return false;
+
+            WaitIfPaused();
+
+            try
+            {
+                var fileInfo = new FileInfo(filePath);
+                
+                // Skip files that are too large (> 10 MB)
+                if (fileInfo.Length > 10 * 1024 * 1024)
+                    return false;
+
+                // Skip binary files by extension
+                string extension = fileInfo.Extension.ToLower();
+                string[] binaryExtensions = { ".exe", ".dll", ".bin", ".so", ".dylib", ".lib", ".obj", ".o", ".a" };
+                if (Array.IndexOf(binaryExtensions, extension) >= 0)
+                    return false;
+
+                // Try to read file with different encodings
+                Encoding[] encodings = { Encoding.UTF8, Encoding.Default, Encoding.ASCII, Encoding.Unicode, Encoding.BigEndianUnicode };
+
+                foreach (var encoding in encodings)
+                {
+                    try
+                    {
+                        if (cancellationToken.IsCancellationRequested)
+                            return false;
+
+                        WaitIfPaused();
+
+                        // Read file line by line to save memory
+                        using (var reader = new StreamReader(filePath, encoding, detectEncodingFromByteOrderMarks: true))
+                        {
+                            string? line;
+                            int lineCount = 0;
+                            const int maxLines = 10000; // Limit for very large text files
+
+                            while ((line = reader.ReadLine()) != null)
+                            {
+                                if (cancellationToken.IsCancellationRequested)
+                                    return false;
+
+                                WaitIfPaused();
+
+                                if (lineCount++ > maxLines)
+                                    break;
+
+                                if (line.IndexOf(searchText, StringComparison.OrdinalIgnoreCase) >= 0)
+                                {
+                                    return true;
+                                }
+                            }
+                        }
+                        // If file was successfully read, stop trying other encodings
+                        break;
+                    }
+                    catch (DecoderFallbackException)
+                    {
+                        // Wrong encoding, try next one
+                        continue;
+                    }
+                    catch (OutOfMemoryException)
+                    {
+                        // File too large to read
+                        return false;
+                    }
+                    catch
+                    {
+                        // Other errors - try next encoding
+                        continue;
+                    }
+                }
+            }
+            catch (UnauthorizedAccessException)
+            {
+                // No access to file
+                return false;
+            }
+            catch (IOException)
+            {
+                // I/O error
+                return false;
+            }
+            catch
+            {
+                // Other errors
+                return false;
+            }
+
+            return false;
+        }
+
+        private void checkBoxSearchInContent_CheckedChanged(object sender, EventArgs e)
+        {
+            textBoxContent.Enabled = checkBoxSearchInContent.Checked;
+            if (checkBoxSearchInContent.Checked)
+            {
+                textBoxContent.Focus();
+            }
         }
 
         protected override void OnFormClosing(FormClosingEventArgs e)
@@ -385,7 +627,72 @@ namespace FileSearchApp
             {
                 _cancellationTokenSource?.Cancel();
             }
+            _pauseEvent?.Dispose();
             base.OnFormClosing(e);
+        }
+    }
+
+    // Comparer for ListView sorting
+    public class ListViewItemComparer : IComparer
+    {
+        private int _column;
+        private SortOrder _order;
+
+        public ListViewItemComparer(int column, SortOrder order)
+        {
+            _column = column;
+            _order = order;
+        }
+
+        public int Compare(object? x, object? y)
+        {
+            if (x == null || y == null)
+                return 0;
+
+            ListViewItem itemX = (ListViewItem)x;
+            ListViewItem itemY = (ListViewItem)y;
+
+            string textX = _column < itemX.SubItems.Count ? itemX.SubItems[_column].Text : "";
+            string textY = _column < itemY.SubItems.Count ? itemY.SubItems[_column].Text : "";
+
+            int result = 0;
+
+            // Try to parse as numbers for Size column (column 3)
+            if (_column == 3)
+            {
+                if (double.TryParse(textX.Replace(" B", "").Replace(" KB", "").Replace(" MB", "").Replace(" GB", "").Replace(" TB", ""), out double numX) &&
+                    double.TryParse(textY.Replace(" B", "").Replace(" KB", "").Replace(" MB", "").Replace(" GB", "").Replace(" TB", ""), out double numY))
+                {
+                    // Convert to bytes for proper comparison
+                    double bytesX = ConvertToBytes(textX, numX);
+                    double bytesY = ConvertToBytes(textY, numY);
+                    result = bytesX.CompareTo(bytesY);
+                }
+                else
+                {
+                    result = string.Compare(textX, textY, StringComparison.OrdinalIgnoreCase);
+                }
+            }
+            else
+            {
+                result = string.Compare(textX, textY, StringComparison.OrdinalIgnoreCase);
+            }
+
+            return _order == SortOrder.Ascending ? result : -result;
+        }
+
+        private double ConvertToBytes(string text, double value)
+        {
+            if (text.Contains(" TB"))
+                return value * 1024 * 1024 * 1024 * 1024;
+            else if (text.Contains(" GB"))
+                return value * 1024 * 1024 * 1024;
+            else if (text.Contains(" MB"))
+                return value * 1024 * 1024;
+            else if (text.Contains(" KB"))
+                return value * 1024;
+            else
+                return value;
         }
     }
 }
