@@ -1,0 +1,14 @@
+C:\System programming\3. Files Folders Search\bin\Debug\net6.0-windows\FileSearchApp.exe
+C:\System programming\3. Files Folders Search\bin\Debug\net6.0-windows\FileSearchApp.deps.json
+C:\System programming\3. Files Folders Search\bin\Debug\net6.0-windows\FileSearchApp.runtimeconfig.json
+C:\System programming\3. Files Folders Search\bin\Debug\net6.0-windows\FileSearchApp.dll
+C:\System programming\3. Files Folders Search\bin\Debug\net6.0-windows\FileSearchApp.pdb
+C:\System programming\3. Files Folders Search\obj\Debug\net6.0-windows\FileSearchApp.GeneratedMSBuildEditorConfig.editorconfig
+C:\System programming\3. Files Folders Search\obj\Debug\net6.0-windows\FileSearchApp.AssemblyInfoInputs.cache
+C:\System programming\3. Files Folders Search\obj\Debug\net6.0-windows\FileSearchApp.AssemblyInfo.cs
+C:\System programming\3. Files Folders Search\obj\Debug\net6.0-windows\FileSearchApp.csproj.CoreCompileInputs.cache
+C:\System programming\3. Files Folders Search\obj\Debug\net6.0-windows\FileSearchApp.dll
+C:\System programming\3. Files Folders Search\obj\Debug\net6.0-windows\refint\FileSearchApp.dll
+C:\System programming\3. Files Folders Search\obj\Debug\net6.0-windows\FileSearchApp.pdb
+C:\System programming\3. Files Folders Search\obj\Debug\net6.0-windows\FileSearchApp.genruntimeconfig.cache
+C:\System programming\3. Files Folders Search\obj\Debug\net6.0-windows\ref\FileSearchApp.dll
