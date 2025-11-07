@@ -21,6 +21,28 @@ namespace FileSearchApp
             InitializeComponent();
             InitializeDisks();
             InitializeListView();
+            this.Resize += MainForm_Resize;
+            AdjustContentTextBoxSize();
+        }
+
+        private void MainForm_Resize(object sender, EventArgs e)
+        {
+            AdjustContentTextBoxSize();
+        }
+
+        private void AdjustContentTextBoxSize()
+        {
+            if (checkBoxSearchInContent != null && textBoxContent != null)
+            {
+                int spacing = 8; // Space between textbox and checkbox
+                int checkboxLeft = checkBoxSearchInContent.Left;
+                int availableWidth = checkboxLeft - spacing - textBoxContent.Left;
+                
+                if (availableWidth > 100) // Minimum width
+                {
+                    textBoxContent.Width = availableWidth;
+                }
+            }
         }
 
         private void InitializeDisks()

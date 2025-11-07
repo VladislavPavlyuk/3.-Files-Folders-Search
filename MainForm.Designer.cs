@@ -68,13 +68,12 @@ namespace FileSearchApp
             // 
             // textBoxContent
             // 
-            this.textBoxContent.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
+            this.textBoxContent.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left)));
             this.textBoxContent.Enabled = false;
             this.textBoxContent.Font = new System.Drawing.Font("Microsoft Sans Serif", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
             this.textBoxContent.Location = new System.Drawing.Point(12, 120);
             this.textBoxContent.Name = "textBoxContent";
-            this.textBoxContent.Size = new System.Drawing.Size(600, 21);
+            this.textBoxContent.Size = new System.Drawing.Size(476, 21);
             this.textBoxContent.TabIndex = 2;
             // 
             // labelContent
@@ -90,11 +89,12 @@ namespace FileSearchApp
             // 
             // checkBoxSearchInContent
             // 
+            this.checkBoxSearchInContent.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.checkBoxSearchInContent.AutoSize = true;
             this.checkBoxSearchInContent.Font = new System.Drawing.Font("Microsoft Sans Serif", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
-            this.checkBoxSearchInContent.Location = new System.Drawing.Point(630, 120);
+            this.checkBoxSearchInContent.Location = new System.Drawing.Point(630, 122);
             this.checkBoxSearchInContent.Name = "checkBoxSearchInContent";
-            this.checkBoxSearchInContent.Size = new System.Drawing.Size(158, 19);
+            this.checkBoxSearchInContent.Size = new System.Drawing.Size(130, 19);
             this.checkBoxSearchInContent.TabIndex = 9;
             this.checkBoxSearchInContent.Text = "Search in content";
             this.checkBoxSearchInContent.UseVisualStyleBackColor = true;
