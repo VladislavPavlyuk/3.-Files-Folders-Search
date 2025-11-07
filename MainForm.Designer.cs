@@ -104,9 +104,9 @@ namespace FileSearchApp
             this.buttonPause.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.buttonPause.Enabled = false;
             this.buttonPause.Font = new System.Drawing.Font("Microsoft Sans Serif", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
-            this.buttonPause.Location = new System.Drawing.Point(630, 75);
+            this.buttonPause.Location = new System.Drawing.Point(630, 68);
             this.buttonPause.Name = "buttonPause";
-            this.buttonPause.Size = new System.Drawing.Size(158, 35);
+            this.buttonPause.Size = new System.Drawing.Size(158, 30);
             this.buttonPause.TabIndex = 10;
             this.buttonPause.Text = "Pause";
             this.buttonPause.UseVisualStyleBackColor = true;
@@ -133,7 +133,7 @@ namespace FileSearchApp
             this.buttonSearch.Font = new System.Drawing.Font("Microsoft Sans Serif", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
             this.buttonSearch.Location = new System.Drawing.Point(630, 30);
             this.buttonSearch.Name = "buttonSearch";
-            this.buttonSearch.Size = new System.Drawing.Size(158, 68);
+            this.buttonSearch.Size = new System.Drawing.Size(158, 30);
             this.buttonSearch.TabIndex = 4;
             this.buttonSearch.Text = "Search";
             this.buttonSearch.UseVisualStyleBackColor = true;
