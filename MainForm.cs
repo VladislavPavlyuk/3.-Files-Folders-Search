@@ -409,10 +409,16 @@ namespace FileSearchApp
                     try
                     {
                         string fileName = Path.GetFileName(file);
-                        if (!string.IsNullOrEmpty(fileName) && pattern.IsMatch(fileName))
+                        if (string.IsNullOrEmpty(fileName))
+                            continue;
+
+                        // Check if file name matches the pattern
+                        bool nameMatches = pattern.IsMatch(fileName);
+                        
+                        // If content search is enabled, we need both name match AND content match
+                        if (searchInContent)
                         {
-                            // If content search is enabled, check file content
-                            if (searchInContent)
+                            if (nameMatches && !string.IsNullOrEmpty(searchText))
                             {
                                 if (FileContainsText(file, searchText, cancellationToken))
                                 {
@@ -420,16 +426,21 @@ namespace FileSearchApp
                                     AddResultToListView(file, true);
                                 }
                             }
-                            else
+                        }
+                        else
+                        {
+                            // If only name search, just check the pattern
+                            if (nameMatches)
                             {
                                 foundCount++;
                                 AddResultToListView(file, true);
                             }
                         }
                     }
-                    catch
+                    catch (Exception ex)
                     {
-                        // Skip problematic files
+                        // Skip problematic files - log error for debugging
+                        System.Diagnostics.Debug.WriteLine($"Error processing file: {ex.Message}");
                     }
                 }
 
@@ -577,23 +588,75 @@ namespace FileSearchApp
             if (cancellationToken.IsCancellationRequested)
                 return false;
 
+            if (string.IsNullOrEmpty(searchText))
+                return false;
+
             WaitIfPaused();
 
             try
             {
+                if (!File.Exists(filePath))
+                    return false;
+
                 var fileInfo = new FileInfo(filePath);
                 
                 // Skip files that are too large (> 10 MB)
                 if (fileInfo.Length > 10 * 1024 * 1024)
                     return false;
 
+                // Skip empty files
+                if (fileInfo.Length == 0)
+                    return false;
+
                 // Skip binary files by extension
                 string extension = fileInfo.Extension.ToLower();
-                string[] binaryExtensions = { ".exe", ".dll", ".bin", ".so", ".dylib", ".lib", ".obj", ".o", ".a" };
+                string[] binaryExtensions = { ".exe", ".dll", ".bin", ".so", ".dylib", ".lib", ".obj", ".o", ".a", ".zip", ".rar", ".7z", ".tar", ".gz" };
                 if (Array.IndexOf(binaryExtensions, extension) >= 0)
                     return false;
 
-                // Try to read file with different encodings
+                // Try to read file with automatic encoding detection first
+                try
+                {
+                    if (cancellationToken.IsCancellationRequested)
+                        return false;
+
+                    WaitIfPaused();
+
+                    // Try automatic encoding detection (StreamReader without specifying encoding)
+                    using (var reader = new StreamReader(filePath, detectEncodingFromByteOrderMarks: true))
+                    {
+                        string? line;
+                        int lineCount = 0;
+                        const int maxLines = 10000; // Limit for very large text files
+
+                        while ((line = reader.ReadLine()) != null)
+                        {
+                            if (cancellationToken.IsCancellationRequested)
+                                return false;
+
+                            WaitIfPaused();
+
+                            lineCount++;
+                            if (lineCount > maxLines)
+                                break;
+
+                            // Search for text in current line (case-insensitive)
+                            if (line != null && line.IndexOf(searchText, StringComparison.OrdinalIgnoreCase) >= 0)
+                            {
+                                return true;
+                            }
+                        }
+                    }
+                    // If automatic detection worked but text not found, return false
+                    return false;
+                }
+                catch
+                {
+                    // Automatic detection failed, try manual encodings
+                }
+
+                // Try to read file with different encodings manually
+                // Order matters: try UTF8 first (most common), then Default (system encoding), then others
                 Encoding[] encodings = { Encoding.UTF8, Encoding.Default, Encoding.ASCII, Encoding.Unicode, Encoding.BigEndianUnicode };
 
                 foreach (var encoding in encodings)
@@ -606,7 +669,7 @@ namespace FileSearchApp
                         WaitIfPaused();
 
                         // Read file line by line to save memory
-                        using (var reader = new StreamReader(filePath, encoding, detectEncodingFromByteOrderMarks: true))
+                        using (var reader = new StreamReader(filePath, encoding, detectEncodingFromByteOrderMarks: false))
                         {
                             string? line;
                             int lineCount = 0;
@@ -619,17 +682,19 @@ namespace FileSearchApp
 
                                 WaitIfPaused();
 
-                                if (lineCount++ > maxLines)
+                                lineCount++;
+                                if (lineCount > maxLines)
                                     break;
 
-                                if (line.IndexOf(searchText, StringComparison.OrdinalIgnoreCase) >= 0)
+                                // Search for text in current line (case-insensitive)
+                                if (line != null && line.IndexOf(searchText, StringComparison.OrdinalIgnoreCase) >= 0)
                                 {
                                     return true;
                                 }
                             }
                         }
-                        // If file was successfully read, stop trying other encodings
-                        break;
+                        // File was read successfully but text not found with this encoding
+                        // Continue trying other encodings - file might be in different encoding
                     }
                     catch (DecoderFallbackException)
                     {
@@ -641,16 +706,29 @@ namespace FileSearchApp
                         // File too large to read
                         return false;
                     }
+                    catch (IOException)
+                    {
+                        // I/O error with this encoding, try next one
+                        continue;
+                    }
                     catch
                     {
                         // Other errors - try next encoding
                         continue;
                     }
                 }
+
+                // If file was read successfully but text not found with all encodings, return false
+                return false;
             }
             catch (UnauthorizedAccessException)
             {
                 // No access to file
+                return false;
+            }
+            catch (FileNotFoundException)
+            {
+                // File not found
                 return false;
             }
             catch (IOException)
@@ -663,8 +741,6 @@ namespace FileSearchApp
                 // Other errors
                 return false;
             }
-
-            return false;
         }
 
         private void checkBoxSearchInContent_CheckedChanged(object sender, EventArgs e)

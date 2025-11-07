@@ -150,7 +150,7 @@ namespace FileSearchApp
             this.checkBoxSearchInSubdirectories.Name = "checkBoxSearchInSubdirectories";
             this.checkBoxSearchInSubdirectories.Size = new System.Drawing.Size(158, 19);
             this.checkBoxSearchInSubdirectories.TabIndex = 11;
-            this.checkBoxSearchInSubdirectories.Text = "Search in subdirectories";
+            this.checkBoxSearchInSubdirectories.Text = "Search in subfolders";
             this.checkBoxSearchInSubdirectories.UseVisualStyleBackColor = true;
             // 
             // labelMask
@@ -214,7 +214,7 @@ namespace FileSearchApp
             this.Controls.Add(this.textBoxMask);
             this.MinimumSize = new System.Drawing.Size(600, 400);
             this.Name = "MainForm";
-            this.Text = "File and Folder Search";
+            this.Text = "Files and Folders Search";
             this.ResumeLayout(false);
             this.PerformLayout();
         }
