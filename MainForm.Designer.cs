@@ -1,3 +1,6 @@
+using System.IO;
+using System.Windows.Forms;
+
 namespace FileSearchApp
 {
     partial class MainForm
@@ -215,6 +218,24 @@ namespace FileSearchApp
             this.MinimumSize = new System.Drawing.Size(600, 400);
             this.Name = "MainForm";
             this.Text = "Files and Folders Search";
+            try
+            {
+                // Try to load icon from application directory
+                string iconPath = Path.Combine(Application.StartupPath, "app.ico");
+                if (File.Exists(iconPath))
+                {
+                    this.Icon = new System.Drawing.Icon(iconPath);
+                }
+                else if (File.Exists("app.ico"))
+                {
+                    // Fallback to current directory
+                    this.Icon = new System.Drawing.Icon("app.ico");
+                }
+            }
+            catch
+            {
+                // If icon file cannot be loaded, continue without icon
+            }
             this.ResumeLayout(false);
             this.PerformLayout();
         }
